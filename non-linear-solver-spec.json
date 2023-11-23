@@ -15,7 +15,12 @@
             "LBFGS",
             "LBFGSB",
             "Newton",
-            "box_constraints"
+            "box_constraints",
+            "debug_fd_eps",
+            "max_step_size",
+            "min_step_size",
+            "solver_info_log",
+            "export_energy"
         ],
         "doc": "Settings for nonlinear solver. Interior-loop linear solver settings are defined in the solver/linear section."
     },
@@ -271,9 +276,49 @@
         "doc": "Box constraint values on optimization variables."
     },
     {
+        "pointer": "/box_constraints/bounds/*",
+        "type": "list",
+        "doc": "Box constraint values on optimization variables."
+    },
+    {
+        "pointer": "/box_constraints/bounds/*/*",
+        "type": "float",
+        "doc": "Box constraint values on optimization variables."
+    },
+    {
         "pointer": "/box_constraints/max_change",
         "default": -1,
         "type": "float",
         "doc": "Maximum change of optimization variables in one iteration, only for solvers with box constraints. Negative value to disable this constraint."
+    },
+    {
+        "pointer": "/max_step_size",
+        "default": 1,
+        "type": "float",
+        "doc": "Max step size in line search"
+    },
+    {
+        "pointer": "/min_step_size",
+        "default": 0,
+        "type": "float",
+        "doc": "Minimum step size in line search"
+    },
+    {
+        "pointer": "/solver_info_log",
+        "default": false,
+        "type": "bool",
+        "doc": "Print optimization nonlinear solver statistics to log in json format at every iter"
+    },
+    {
+        "pointer": "/debug_fd_eps",
+        "default": 0,
+        "type": "float",
+        "doc": "Use finite difference to verify gradient in optimization. Set to zero to disable."
+    },
+    {
+        "pointer": "/export_energy",
+        "default": "",
+        "type": "string",
+        "doc": "Save energy and gradient in optimizations to file"
     }
 ]

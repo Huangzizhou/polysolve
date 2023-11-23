@@ -118,9 +118,15 @@ namespace polysolve::nonlinear
         // criteria.condition = solver_params["condition"];
         this->setStopCriteria(criteria);
 
+		min_step_size = solver_params["min_step_size"];
+		max_step_size = solver_params["max_step_size"];
         use_grad_norm_tol = solver_params["line_search"]["use_grad_norm_tol"];
+		solver_info_log = solver_params["solver_info_log"];
+		export_energy_path = solver_params["export_energy"];
 
         first_grad_norm_tol = solver_params["first_grad_norm_tol"];
+
+		finite_diff_eps = solver_params["debug_fd_eps"];
 
         use_grad_norm_tol *= characteristic_length;
         first_grad_norm_tol *= characteristic_length;
@@ -154,7 +160,40 @@ namespace polysolve::nonlinear
     {
         m_line_search = line_search::LineSearch::create(params, m_logger);
         solver_info["line_search"] = params["line_search"]["method"];
+
+		m_line_search->set_min_step_size(min_step_size);
     }
+
+	bool Solver::verify_gradient(Problem &objFunc, const TVector &x, const TVector &grad)
+	{
+		if (finite_diff_eps <= 0)
+			return true;
+		
+		Eigen::VectorXd direc = grad.normalized();
+		Eigen::VectorXd x2 = x + direc * finite_diff_eps;
+		Eigen::VectorXd x1 = x - direc * finite_diff_eps;
+
+		objFunc.solution_changed(x2);
+		double J2 = objFunc.value(x2);
+
+		objFunc.solution_changed(x1);
+		double J1 = objFunc.value(x1);
+
+		double fd = (J2 - J1) / 2 / finite_diff_eps;
+		double analytic = direc.dot(grad);
+
+		bool match = abs(fd - analytic) < 1e-8 || abs(fd - analytic) < 1e-1 * abs(analytic);
+
+		// Log error in either case to make it more visible in the logs.
+		if (match)
+			m_logger.info("step size: {}, finite difference: {}, derivative: {}", finite_diff_eps, fd, analytic);
+		else
+			m_logger.error("step size: {}, finite difference: {}, derivative: {}", finite_diff_eps, fd, analytic);
+
+		objFunc.solution_changed(x);
+
+		return match;
+	}
 
     void Solver::minimize(Problem &objFunc, TVector &x)
     {
@@ -185,6 +224,12 @@ namespace polysolve::nonlinear
         StopWatch stop_watch("non-linear solver", this->total_time, m_logger);
         stop_watch.start();
 
+		std::ofstream outfile;
+		if (export_energy_path != "")
+			outfile.open(export_energy_path);
+
+		objFunc.save_to_file(x);
+
         m_logger.debug(
             "Starting {} with {} solve f₀={:g} ‖∇f₀‖={:g} "
             "(stopping criteria: max_iters={:d} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g})",
@@ -193,7 +238,9 @@ namespace polysolve::nonlinear
             this->m_stop.fDelta, this->m_stop.gradNorm, this->m_stop.xDelta);
 
         update_solver_info(objFunc.value(x));
-
+		if (solver_info_log)
+			std::cout << solver_info << std::endl;
+        
         do
         {
             m_line_search->set_is_final_strategy(m_descent_strategy == m_strategies.size() - 1);
@@ -233,6 +280,19 @@ namespace polysolve::nonlinear
                 log_and_throw_error(m_logger, "[{}][{}] Gradient is nan; stopping", name(), m_line_search->name());
                 break;
             }
+
+			{
+				POLYSOLVE_SCOPED_STOPWATCH("verify gradient", grad_time, m_logger);
+				verify_gradient(objFunc, x, grad);
+			}
+
+			if (outfile.is_open())
+			{
+				outfile << std::setprecision(12) << energy << ", " << grad_norm;
+				outfile << "\n";
+				outfile.flush();
+			}
+            
             this->m_current.gradNorm = grad_norm;
             this->m_status = checkConvergence(this->m_stop, this->m_current);
             if (this->m_status != cppoptlib::Status::Continue)
@@ -265,6 +325,7 @@ namespace polysolve::nonlinear
                 continue;
             }
 
+            delta_x *= max_step_size;
             const double delta_x_norm = delta_x.norm();
             if (std::isnan(delta_x_norm))
             {
@@ -289,6 +350,28 @@ namespace polysolve::nonlinear
             this->m_status = checkConvergence(this->m_stop, this->m_current);
             if (this->m_status != cppoptlib::Status::Continue)
                 break;
+
+
+			// ---------------
+			// Plot energy over descent direction
+			// ---------------
+
+			// if (this->m_current.iterations > 8) {
+			// 	const double value_ = objFunc.value(x);
+			// 	const double rate_ = delta_x.dot(grad);
+			// 	std::cout << "descent rate " << rate_ << "\n";
+			// 	std::cout << std::setprecision(20) << 0 << " " << value_ << " " << grad.dot(delta_x) << "\n";
+			// 	double dt_ = 1e-4;
+			// 	while (dt_ < 1e2)
+			// 	{
+			// 		objFunc.solution_changed(x + delta_x * dt_);
+			// 		Eigen::VectorXd grad_;
+			// 		objFunc.gradient(x, grad_);
+			// 		std::cout << std::setprecision(20) << dt_ << " " << objFunc.value(x + delta_x * dt_) << " " << grad.dot(delta_x) << "\n";
+			// 		dt_ *= 1.2;
+			// 	}
+			// 	exit(0);
+			// }
 
             // ---------------
             // Variable update
@@ -353,6 +436,9 @@ namespace polysolve::nonlinear
                 this->m_status = cppoptlib::Status::IterationLimit;
 
             update_solver_info(energy);
+			if (solver_info_log)
+				std::cout << solver_info << std::endl;
+            objFunc.save_to_file(x);
 
             // reset the tolerance, since in the first iter it might be smaller
             this->m_stop.gradNorm = g_norm_tol;

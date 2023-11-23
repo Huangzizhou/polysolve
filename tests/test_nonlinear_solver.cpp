@@ -255,8 +255,8 @@ void test_solvers(const std::vector<std::string> &solvers, const int iters, cons
 
     const double characteristic_length = 1;
 
-    static std::shared_ptr<spdlog::logger> logger = spdlog::stdout_color_mt("test_logger");
-    logger->set_level(spdlog::level::info);
+    static std::shared_ptr<spdlog::logger> logger = spdlog::stdout_color_mt("test_logger1");
+    logger->set_level(spdlog::level::err);
     TestProblem::TVector g;
     for (auto &prob : problems)
     {
@@ -368,8 +368,8 @@ TEST_CASE("non-linear-box-constraint", "[solver]")
 
     const double characteristic_length = 1;
 
-    static std::shared_ptr<spdlog::logger> logger = spdlog::stdout_color_mt("test_logger");
-    logger->set_level(spdlog::level::info);
+    static std::shared_ptr<spdlog::logger> logger = spdlog::stdout_color_mt("test_logger2");
+    logger->set_level(spdlog::level::err);
 
     for (auto &prob : problems)
     {

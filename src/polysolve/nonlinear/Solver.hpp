@@ -77,6 +77,8 @@ namespace polysolve::nonlinear
                    || this->m_status == cppoptlib::Status::GradNormTolerance;
         }
 
+		bool verify_gradient(Problem &objFunc, const TVector &x, const TVector &grad);
+
         size_t max_iterations() const { return this->m_stop.iterations; }
         size_t &max_iterations() { return this->m_stop.iterations; }
         bool allow_out_of_iterations = false;
@@ -105,6 +107,10 @@ namespace polysolve::nonlinear
         // ====================================================================
 
         std::string m_name;
+
+		bool solver_info_log;
+		double min_step_size;
+		double max_step_size;
 
         double use_grad_norm_tol;
         double first_grad_norm_tol;
@@ -141,7 +147,12 @@ namespace polysolve::nonlinear
         double constraint_set_update_time;
         double obj_fun_time;
 
+		std::string export_energy_path;
+		bool export_energy_components;
+
         ErrorCode m_error_code;
+
+		double finite_diff_eps;
 
         // ====================================================================
         //                                 END

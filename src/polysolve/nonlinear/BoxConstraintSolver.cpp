@@ -4,6 +4,7 @@
 #include "descent_strategies/box_constraints/MMA.hpp"
 
 #include <jse/jse.h>
+#include <polysolve/JSONUtils.hpp>
 
 #include <fstream>
 
@@ -121,7 +122,7 @@ namespace polysolve::nonlinear
         : Superclass(name, solver_params, characteristic_length, logger)
     {
         json box_constraint_params = solver_params["box_constraints"];
-        if (box_constraint_params["max_change"] > 0)
+        if (box_constraint_params["max_change"].is_number())
             max_change_val_ = box_constraint_params["max_change"];
         else
             max_change_ = box_constraint_params["max_change"];

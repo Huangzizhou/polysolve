@@ -154,6 +154,9 @@ namespace polysolve::nonlinear
 
 		double finite_diff_eps;
 
+        int useless_step_tol;
+        double f_delta;
+
         // ====================================================================
         //                                 END
         // ====================================================================

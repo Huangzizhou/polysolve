@@ -131,6 +131,9 @@ namespace polysolve::nonlinear
         use_grad_norm_tol *= characteristic_length;
         first_grad_norm_tol *= characteristic_length;
 
+        f_delta = solver_params["f_delta"];
+        useless_step_tol = solver_params["useless_step_tol"];
+
         set_line_search(solver_params);
     }
 
@@ -240,6 +243,8 @@ namespace polysolve::nonlinear
         update_solver_info(objFunc.value(x));
 		if (solver_info_log)
 			std::cout << solver_info << std::endl;
+
+        int n_useless_step = 0;
         
         do
         {
@@ -292,7 +297,16 @@ namespace polysolve::nonlinear
 				outfile << "\n";
 				outfile.flush();
 			}
-            
+
+            if (this->m_current.fDelta < f_delta)
+            {
+                n_useless_step++;
+                if (n_useless_step > useless_step_tol)
+                    this->m_stop.fDelta = f_delta;
+            }
+            else
+                n_useless_step = 0;
+
             this->m_current.gradNorm = grad_norm;
             this->m_status = checkConvergence(this->m_stop, this->m_current);
             if (this->m_status != cppoptlib::Status::Continue)

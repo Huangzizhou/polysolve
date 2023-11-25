@@ -20,7 +20,9 @@
             "max_step_size",
             "min_step_size",
             "solver_info_log",
-            "export_energy"
+            "export_energy",
+            "f_delta",
+            "useless_step_tol"
         ],
         "doc": "Settings for nonlinear solver. Interior-loop linear solver settings are defined in the solver/linear section."
     },
@@ -330,5 +332,17 @@
         "pointer": "/box_constraints/max_change/*",
         "type": "float",
         "doc": "Maximum change of every optimization variable in one iteration, only for solvers with box constraints."
+    },
+    {
+        "pointer": "/f_delta",
+        "default": -0.01,
+        "type": "float",
+        "doc": "Quit the optimization if the solver reduces the energy by less than f_delta for consecutive useless_step_tol steps."
+    },
+    {
+        "pointer": "/useless_step_tol",
+        "default": 100,
+        "type": "int",
+        "doc": "Quit the optimization if the solver reduces the energy by less than f_delta for consecutive useless_step_tol steps."
     }
 ]

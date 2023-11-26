@@ -298,14 +298,8 @@ namespace polysolve::nonlinear
 				outfile.flush();
 			}
 
-            if (this->m_current.fDelta < f_delta)
-            {
-                n_useless_step++;
-                if (n_useless_step > useless_step_tol)
-                    this->m_stop.fDelta = f_delta;
-            }
-            else
-                n_useless_step = 0;
+            if (n_useless_step > useless_step_tol)
+                this->m_stop.fDelta = f_delta;
 
             this->m_current.gradNorm = grad_norm;
             this->m_status = checkConvergence(this->m_stop, this->m_current);
@@ -387,6 +381,11 @@ namespace polysolve::nonlinear
 			// 	exit(0);
 			// }
 
+            if (this->m_current.fDelta < f_delta)
+                n_useless_step++;
+            else
+                n_useless_step = 0;
+            
             // ---------------
             // Variable update
             // ---------------

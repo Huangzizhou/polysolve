@@ -414,6 +414,10 @@ namespace polysolve::nonlinear
                 m_descent_strategy = 0;
                 for (auto &s : m_strategies)
                     s->reset(x.size());
+
+                m_logger.debug(
+                    "[{}][{}] Enough bad strategy; reverting to {}",
+                    name(), m_line_search->name(), descent_strategy_name());
             }
 
             previous_strategy = m_descent_strategy;
@@ -439,10 +443,10 @@ namespace polysolve::nonlinear
                 n_useless_step = 0;
 
             m_logger.debug(
-                "[{}][{}] iter={:d} f={:g} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g} Δx⋅∇f(x)={:g} rate={:g} ‖step‖={:g}",
+                "[{}][{}] iter={:d} f={:g} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g} Δx⋅∇f(x)={:g} rate={:g} ‖step‖={:g} [useless]={:d} (stopping criteria: ‖∇f‖={:g})",
                 name(), m_line_search->name(),
                 this->m_current.iterations, energy, this->m_current.fDelta,
-                this->m_current.gradNorm, this->m_current.xDelta, delta_x.dot(grad), rate, step);
+                this->m_current.gradNorm, this->m_current.xDelta, delta_x.dot(grad), rate, step, n_useless_step, this->m_stop.gradNorm);
 
             if (++this->m_current.iterations >= this->m_stop.iterations)
                 this->m_status = cppoptlib::Status::IterationLimit;
@@ -469,10 +473,12 @@ namespace polysolve::nonlinear
 
         double tot_time = stop_watch.getElapsedTimeInSec();
         m_logger.info(
-            "[{}][{}] Finished: {} Took {:g}s (niters={:d} f={:g} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g} ftol={})",
+            "[{}][{}] Finished: {} Took {:g}s (niters={:d} f={:g} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g})"
+            " (stopping criteria: max_iters={:d} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g})",
             name(), m_line_search->name(),
             this->m_status, tot_time, this->m_current.iterations,
-            old_energy, this->m_current.fDelta, this->m_current.gradNorm, this->m_current.xDelta, this->m_stop.fDelta);
+            old_energy, this->m_current.fDelta, this->m_current.gradNorm, this->m_current.xDelta, this->m_stop.iterations,
+            f_delta, this->m_stop.gradNorm, this->m_stop.xDelta);
 
         log_times();
         update_solver_info(objFunc.value(x));

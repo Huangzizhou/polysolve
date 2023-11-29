@@ -380,12 +380,6 @@ namespace polysolve::nonlinear
 			// 	}
 			// 	exit(0);
 			// }
-
-            if (this->m_current.fDelta < f_delta)
-                n_useless_step++;
-            else
-                n_useless_step = 0;
-            
             // ---------------
             // Variable update
             // ---------------
@@ -438,6 +432,11 @@ namespace polysolve::nonlinear
             }
 
             objFunc.post_step(this->m_current.iterations, x);
+
+            if (this->m_current.fDelta < f_delta)
+                n_useless_step++;
+            else
+                n_useless_step = 0;
 
             m_logger.debug(
                 "[{}][{}] iter={:d} f={:g} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g} Δx⋅∇f(x)={:g} rate={:g} ‖step‖={:g}",

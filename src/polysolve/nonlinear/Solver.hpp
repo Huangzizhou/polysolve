@@ -109,8 +109,6 @@ namespace polysolve::nonlinear
         std::string m_name;
 
 		bool solver_info_log;
-		double min_step_size;
-		double max_step_size;
 
         double use_grad_norm_tol;
         double first_grad_norm_tol;

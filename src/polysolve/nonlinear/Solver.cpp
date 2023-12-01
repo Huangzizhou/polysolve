@@ -118,8 +118,6 @@ namespace polysolve::nonlinear
         // criteria.condition = solver_params["condition"];
         this->setStopCriteria(criteria);
 
-		min_step_size = solver_params["min_step_size"];
-		max_step_size = solver_params["max_step_size"];
         use_grad_norm_tol = solver_params["line_search"]["use_grad_norm_tol"];
 		solver_info_log = solver_params["solver_info_log"];
 		export_energy_path = solver_params["export_energy"];
@@ -163,8 +161,6 @@ namespace polysolve::nonlinear
     {
         m_line_search = line_search::LineSearch::create(params, m_logger);
         solver_info["line_search"] = params["line_search"]["method"];
-
-		m_line_search->set_min_step_size(min_step_size);
     }
 
 	bool Solver::verify_gradient(Problem &objFunc, const TVector &x, const TVector &grad)
@@ -333,7 +329,6 @@ namespace polysolve::nonlinear
                 continue;
             }
 
-            delta_x *= max_step_size;
             const double delta_x_norm = delta_x.norm();
             if (std::isnan(delta_x_norm))
             {

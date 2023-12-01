@@ -118,7 +118,7 @@ namespace polysolve::nonlinear
         // criteria.condition = solver_params["condition"];
         this->setStopCriteria(criteria);
 
-        use_grad_norm_tol = solver_params["line_search"]["use_grad_norm_tol"].get<bool>();
+        use_grad_norm_tol = solver_params["line_search"]["use_grad_norm_tol"].get<double>();
 		solver_info_log = solver_params["solver_info_log"].get<bool>();
 		export_energy_path = solver_params["export_energy"].get<std::string>();
 

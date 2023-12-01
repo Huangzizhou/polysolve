@@ -106,31 +106,30 @@ namespace polysolve::nonlinear
         : m_logger(logger), m_name(name), characteristic_length(characteristic_length)
     {
         TCriteria criteria = TCriteria::defaults();
-        criteria.xDelta = solver_params["x_delta"];
-        criteria.fDelta = -1;
-        criteria.gradNorm = solver_params["grad_norm"];
+        criteria.xDelta = solver_params["x_delta"].get<double>();
+        criteria.fDelta = solver_params["f_delta"].get<double>();
+        criteria.gradNorm = solver_params["grad_norm"].get<double>();
 
         criteria.xDelta *= characteristic_length;
         criteria.fDelta *= characteristic_length;
         criteria.gradNorm *= characteristic_length;
 
-        criteria.iterations = solver_params["max_iterations"];
+        criteria.iterations = solver_params["max_iterations"].get<int>();
         // criteria.condition = solver_params["condition"];
         this->setStopCriteria(criteria);
 
-        use_grad_norm_tol = solver_params["line_search"]["use_grad_norm_tol"];
-		solver_info_log = solver_params["solver_info_log"];
-		export_energy_path = solver_params["export_energy"];
+        use_grad_norm_tol = solver_params["line_search"]["use_grad_norm_tol"].get<bool>();
+		solver_info_log = solver_params["solver_info_log"].get<bool>();
+		export_energy_path = solver_params["export_energy"].get<std::string>();
 
-        first_grad_norm_tol = solver_params["first_grad_norm_tol"];
+        first_grad_norm_tol = solver_params["first_grad_norm_tol"].get<double>();
 
-		finite_diff_eps = solver_params["debug_fd_eps"];
+		finite_diff_eps = solver_params["debug_fd_eps"].get<double>();
 
         use_grad_norm_tol *= characteristic_length;
         first_grad_norm_tol *= characteristic_length;
 
-        f_delta = solver_params["f_delta"];
-        useless_step_tol = solver_params["useless_step_tol"];
+        f_delta_step_tol = solver_params["f_delta_step_tol"].get<int>();
 
         set_line_search(solver_params);
     }
@@ -240,8 +239,9 @@ namespace polysolve::nonlinear
 		if (solver_info_log)
 			std::cout << solver_info << std::endl;
 
-        int n_useless_step = 0;
-        
+        int f_delta_step_cnt = 0;
+        double f_delta = 0;
+      
         do
         {
             m_line_search->set_is_final_strategy(m_descent_strategy == m_strategies.size() - 1);
@@ -265,7 +265,9 @@ namespace polysolve::nonlinear
                 break;
             }
 
-            this->m_current.fDelta = std::abs(old_energy - energy);
+            f_delta = std::abs(old_energy - energy);
+            // stop based on f_delta only if the solver has taken over f_delta_step_tol steps with small f_delta
+            this->m_current.fDelta = (f_delta_step_cnt > f_delta_step_tol) ? f_delta : NaN;
 
             ///////////// gradient
             {
@@ -293,9 +295,6 @@ namespace polysolve::nonlinear
 				outfile << "\n";
 				outfile.flush();
 			}
-
-            if (n_useless_step > useless_step_tol)
-                this->m_stop.fDelta = f_delta;
 
             this->m_current.gradNorm = grad_norm;
             this->m_status = checkConvergence(this->m_stop, this->m_current);
@@ -349,7 +348,7 @@ namespace polysolve::nonlinear
             }
 
             // Use the maximum absolute displacement value divided by the timestep,
-            this->m_current.xDelta = (m_descent_strategy == m_strategies.size() - 1) ? NaN : delta_x_norm;
+            this->m_current.xDelta = delta_x_norm;
             this->m_status = checkConvergence(this->m_stop, this->m_current);
             if (this->m_status != cppoptlib::Status::Continue)
                 break;
@@ -403,16 +402,18 @@ namespace polysolve::nonlinear
             // if the strategy got changed, we start counting
             if (m_descent_strategy != previous_strategy)
                 current_strategy_iter = 0;
-            // if we did enoug lower strategy, we revert back to normal
+            // if we did enough lower strategy, we revert back to normal
             if (m_descent_strategy != 0 && current_strategy_iter >= m_iter_per_strategy[m_descent_strategy])
             {
+                const std::string prev_strategy_name = descent_strategy_name();
+
                 m_descent_strategy = 0;
                 for (auto &s : m_strategies)
                     s->reset(x.size());
 
                 m_logger.debug(
-                    "[{}][{}] Enough bad strategy; reverting to {}",
-                    name(), m_line_search->name(), descent_strategy_name());
+                    "[{}][{}] {} was successful for {} iterations; attempting {}",
+                    name(), m_line_search->name(), prev_strategy_name, current_strategy_iter, descent_strategy_name());
             }
 
             previous_strategy = m_descent_strategy;
@@ -432,16 +433,18 @@ namespace polysolve::nonlinear
 
             objFunc.post_step(this->m_current.iterations, x);
 
-            if (this->m_current.fDelta < f_delta)
-                n_useless_step++;
+            if (f_delta < this->m_stop.fDelta)
+                f_delta_step_cnt++;
             else
-                n_useless_step = 0;
+                f_delta_step_cnt = 0;
 
             m_logger.debug(
-                "[{}][{}] iter={:d} f={:g} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g} Δx⋅∇f(x)={:g} rate={:g} ‖step‖={:g} [useless]={:d} (stopping criteria: ‖∇f‖={:g})",
+                "[{}][{}] iter={:d} f={:g} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g} Δx⋅∇f(x)={:g} rate={:g} ‖step‖={:g}"
+                " (stopping criteria: max_iters={:d} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g})",
                 name(), m_line_search->name(),
-                this->m_current.iterations, energy, this->m_current.fDelta,
-                this->m_current.gradNorm, this->m_current.xDelta, delta_x.dot(grad), rate, step, n_useless_step, this->m_stop.gradNorm);
+                this->m_current.iterations, energy, f_delta,
+                this->m_current.gradNorm, this->m_current.xDelta, delta_x.dot(grad), rate, step,
+                this->m_stop.iterations, this->m_stop.fDelta, this->m_stop.gradNorm, this->m_stop.xDelta);
 
             if (++this->m_current.iterations >= this->m_stop.iterations)
                 this->m_status = cppoptlib::Status::IterationLimit;
@@ -467,13 +470,14 @@ namespace polysolve::nonlinear
             log_and_throw_error(m_logger, "[{}][{}] Failed to find minimizer", name(), m_line_search->name());
 
         double tot_time = stop_watch.getElapsedTimeInSec();
-        m_logger.info(
+        const bool succeeded = this->m_status == cppoptlib::Status::GradNormTolerance;
+        m_logger.log(succeeded ? spdlog::level::info : spdlog::level::err,
             "[{}][{}] Finished: {} Took {:g}s (niters={:d} f={:g} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g})"
             " (stopping criteria: max_iters={:d} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g})",
             name(), m_line_search->name(),
             this->m_status, tot_time, this->m_current.iterations,
-            old_energy, this->m_current.fDelta, this->m_current.gradNorm, this->m_current.xDelta, this->m_stop.iterations,
-            f_delta, this->m_stop.gradNorm, this->m_stop.xDelta);
+            old_energy, f_delta, this->m_current.gradNorm, this->m_current.xDelta,
+            this->m_stop.iterations, this->m_stop.fDelta, this->m_stop.gradNorm, this->m_stop.xDelta);
 
         log_times();
         update_solver_info(objFunc.value(x));

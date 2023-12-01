@@ -115,6 +115,7 @@ namespace polysolve::nonlinear
 
         const double characteristic_length;
 
+        int f_delta_step_tol;
         // ====================================================================
         //                           Solver state
         // ====================================================================
@@ -146,14 +147,10 @@ namespace polysolve::nonlinear
         double obj_fun_time;
 
 		std::string export_energy_path;
-		bool export_energy_components;
 
         ErrorCode m_error_code;
 
 		double finite_diff_eps;
-
-        int useless_step_tol;
-        double f_delta;
 
         // ====================================================================
         //                                 END

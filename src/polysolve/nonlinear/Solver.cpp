@@ -106,49 +106,47 @@ namespace polysolve::nonlinear
         : m_logger(logger), m_name(name), characteristic_length(characteristic_length)
     {
         TCriteria criteria = TCriteria::defaults();
-        criteria.xDelta = solver_params["x_delta"].get<double>();
-        criteria.fDelta = solver_params["f_delta"].get<double>();
-        criteria.gradNorm = solver_params["grad_norm"].get<double>();
+        criteria.xDelta = solver_params["x_delta"];
+        criteria.fDelta = solver_params["advanced"]["f_delta"];
+        criteria.gradNorm = solver_params["grad_norm"];
 
         criteria.xDelta *= characteristic_length;
         criteria.fDelta *= characteristic_length;
         criteria.gradNorm *= characteristic_length;
 
-        criteria.iterations = solver_params["max_iterations"].get<int>();
+        criteria.iterations = solver_params["max_iterations"];
         // criteria.condition = solver_params["condition"];
         this->setStopCriteria(criteria);
 
-        use_grad_norm_tol = solver_params["line_search"]["use_grad_norm_tol"].get<double>();
-		solver_info_log = solver_params["solver_info_log"].get<bool>();
-		export_energy_path = solver_params["export_energy"].get<std::string>();
+        use_grad_norm_tol = solver_params["line_search"]["use_grad_norm_tol"];
+		solver_info_log = solver_params["solver_info_log"];
+		export_energy_path = solver_params["export_energy"];
 
-        first_grad_norm_tol = solver_params["first_grad_norm_tol"].get<double>();
+        first_grad_norm_tol = solver_params["first_grad_norm_tol"];
 
-		finite_diff_eps = solver_params["debug_fd_eps"].get<double>();
+		finite_diff_eps = solver_params["debug_fd_eps"];
 
         use_grad_norm_tol *= characteristic_length;
         first_grad_norm_tol *= characteristic_length;
 
-        f_delta_step_tol = solver_params["f_delta_step_tol"].get<int>();
+        f_delta_step_tol = solver_params["advanced"]["f_delta_step_tol"];
 
         set_line_search(solver_params);
     }
 
     void Solver::set_strategies_iterations(const json &solver_params)
     {
-        m_iter_per_strategy.resize(m_strategies.size() + 1);
-
+        m_iter_per_strategy.assign(m_strategies.size() + 1, 1);
         if (solver_params["iterations_per_strategy"].is_array())
         {
             m_iter_per_strategy.resize(m_strategies.size() + 1);
             if (solver_params["iterations_per_strategy"].size() != m_iter_per_strategy.size())
                 log_and_throw_error(m_logger, "Invalit iter_per_strategy size: {}!={}", solver_params["iterations_per_strategy"].size(), m_iter_per_strategy.size());
 
-            for (int i = 0; i < m_iter_per_strategy.size(); ++i)
-                m_iter_per_strategy[i] = solver_params["iterations_per_strategy"][i];
+            m_iter_per_strategy = solver_params["iterations_per_strategy"].get<std::vector<int>>();
         }
         else
-            m_iter_per_strategy.resize(m_strategies.size() + 1, solver_params["iterations_per_strategy"].get<int>());
+            m_iter_per_strategy.assign(m_strategies.size() + 1, solver_params["iterations_per_strategy"].get<int>());
     }
 
     double Solver::compute_grad_norm(const Eigen::VectorXd &x, const Eigen::VectorXd &grad) const
@@ -267,7 +265,7 @@ namespace polysolve::nonlinear
 
             f_delta = std::abs(old_energy - energy);
             // stop based on f_delta only if the solver has taken over f_delta_step_tol steps with small f_delta
-            this->m_current.fDelta = (f_delta_step_cnt > f_delta_step_tol) ? f_delta : NaN;
+            this->m_current.fDelta = (f_delta_step_cnt >= f_delta_step_tol) ? f_delta : NaN;
 
             ///////////// gradient
             {
@@ -412,7 +410,7 @@ namespace polysolve::nonlinear
                     s->reset(x.size());
 
                 m_logger.debug(
-                    "[{}][{}] {} was successful for {} iterations; attempting {}",
+                    "[{}][{}] {} was successful for {} iterations; resetting to {}",
                     name(), m_line_search->name(), prev_strategy_name, current_strategy_iter, descent_strategy_name());
             }
 

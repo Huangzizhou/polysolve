@@ -2,6 +2,7 @@
 
 #include <LBFGSpp/Cauchy.h>
 #include <LBFGSpp/SubspaceMin.h>
+#include <spdlog/fmt/ostr.h>
 
 namespace polysolve::nonlinear
 {
@@ -11,6 +12,7 @@ namespace polysolve::nonlinear
         : Superclass(solver_params, characteristic_length, logger)
     {
         m_history_size = solver_params["LBFGSB"]["history_size"];
+        print_direction = solver_params["LBFGSB"]["print_direction"];
 
         if (m_history_size <= 0)
             log_and_throw_error(logger, "LBFGSB history_size must be >=1, instead got {}", m_history_size);
@@ -38,14 +40,6 @@ namespace polysolve::nonlinear
         const TVector &upper_bound,
         TVector &direction)
     {
-
-        // for (int i = 0; i < x.size(); i++)
-        // 	if (lower_bound(i) > x(i) || upper_bound(i) < x(i))
-        // 	{
-        // 		m_logger.error("Entry {} value {} exceeds bound [{}, {}]!", i, x(i), lower_bound(i), upper_bound(i));
-        // 		log_and_throw_error(m_logger, "Variable bound exceeded!");
-        // 	}
-
         TVector cauchy_point(x.size()), vecc;
         std::vector<int> newact_set, fv_set;
         if (m_prev_x.size() == 0)
@@ -74,12 +68,12 @@ namespace polysolve::nonlinear
                                                             vecc, newact_set, fv_set, /*Maximum number of iterations*/ max_submin, direction);
         }
 
-        // if (x.size() < 100)
-        // {
-        //     m_logger.debug("x: {}", x.transpose());
-        //     m_logger.debug("grad: {}", grad.transpose());
-        //     m_logger.debug("direc: {}", direction.transpose());
-        // }
+        if (print_direction)
+        {
+            m_logger.debug("x: {}", x.transpose());
+            m_logger.debug("grad: {}", grad.transpose());
+            m_logger.debug("direc: {}", direction.transpose());
+        }
 
         m_prev_x = x;
         m_prev_grad = grad;

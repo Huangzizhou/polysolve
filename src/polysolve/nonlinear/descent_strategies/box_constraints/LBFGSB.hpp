@@ -31,6 +31,7 @@ namespace polysolve::nonlinear
         /// not recommended. Large values will result in excessive computing time.
         int m_history_size = 6;
         int max_submin = 10;
+        bool print_direction = false;
 
         TVector m_prev_x;    // Previous x
         TVector m_prev_grad; // Previous gradient

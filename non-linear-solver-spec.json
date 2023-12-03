@@ -107,7 +107,8 @@
         "default": null,
         "type": "object",
         "optional": [
-            "history_size"
+            "history_size",
+            "print_direction"
         ],
         "doc": "Options for the boxed LBFGS."
     },
@@ -116,6 +117,12 @@
         "default": 6,
         "type": "int",
         "doc": "The number of corrections to approximate the inverse Hessian matrix."
+    },
+    {
+        "pointer": "/LBFGSB/print_direction",
+        "default": false,
+        "type": "bool",
+        "doc": "Print the x, grad, and LBFGSB direction in log."
     },
     {
         "pointer": "/Newton",

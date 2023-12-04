@@ -2,7 +2,20 @@
 
 #include <LBFGSpp/Cauchy.h>
 #include <LBFGSpp/SubspaceMin.h>
+
 #include <spdlog/fmt/ostr.h>
+// #include <spdlog/fmt/bundled/format.h>
+
+namespace {
+    template <typename Derived>
+    void print_matrix(const Eigen::MatrixBase<Derived> &x)
+    {
+        std::cout << std::setprecision(16);
+        for (int i = 0; i < x.size(); i++)
+            std::cout << x(i) << " ";
+        std::cout << "\n";
+    }
+}
 
 namespace polysolve::nonlinear
 {
@@ -70,9 +83,15 @@ namespace polysolve::nonlinear
 
         if (print_direction)
         {
-            m_logger.debug("x: {}", x.transpose());
-            m_logger.debug("grad: {}", grad.transpose());
-            m_logger.debug("direc: {}", direction.transpose());
+            // m_logger.error("x: {}", x.transpose());
+            // m_logger.error("grad: {}", grad.transpose());
+            // m_logger.error("direc: {}", direction.transpose());
+            std::cout << "x: ";
+            print_matrix(x);
+            std::cout << "grad: ";
+            print_matrix(grad);
+            std::cout << "direc: ";
+            print_matrix(direction);
         }
 
         m_prev_x = x;

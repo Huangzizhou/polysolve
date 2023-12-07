@@ -114,6 +114,9 @@ namespace polysolve::nonlinear
         double reg_weight_max;
         double reg_weight_inc;
 
+        TVector x_cache;
+        polysolve::StiffnessMatrix hessian_cache;
+
         bool use_psd_projection;
 
         double reg_weight; ///< Regularization Coefficients

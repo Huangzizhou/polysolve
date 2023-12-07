@@ -79,6 +79,8 @@ namespace polysolve::nonlinear
         reg_weight_max = solver_params["Newton"]["reg_weight_max"];
         reg_weight_inc = solver_params["Newton"]["reg_weight_inc"];
 
+        use_psd_projection = solver_params["Newton"]["use_psd_projection"];
+
         reg_weight = reg_weight_min;
 
         if (reg_weight_min <= 0)
@@ -247,7 +249,7 @@ namespace polysolve::nonlinear
                                             polysolve::StiffnessMatrix &hessian)
 
     {
-        objFunc.set_project_to_psd(true);
+        objFunc.set_project_to_psd(use_psd_projection);
         objFunc.hessian(x, hessian);
         if (reg_weight > 0)
         {

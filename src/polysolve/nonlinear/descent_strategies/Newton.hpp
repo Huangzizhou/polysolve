@@ -114,6 +114,8 @@ namespace polysolve::nonlinear
         double reg_weight_max;
         double reg_weight_inc;
 
+        bool use_psd_projection;
+
         double reg_weight; ///< Regularization Coefficients
     protected:
         void compute_hessian(Problem &objFunc,

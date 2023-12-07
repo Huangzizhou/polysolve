@@ -162,12 +162,12 @@ namespace polysolve::nonlinear
         solver_info["line_search"] = params["line_search"]["method"];
     }
 
-	bool Solver::verify_gradient(Problem &objFunc, const TVector &x, const TVector &grad)
+	bool Solver::verify_gradient(Problem &objFunc, const TVector &x, const TVector &grad, const TVector &direc)
 	{
 		if (finite_diff_eps <= 0)
 			return true;
 		
-		Eigen::VectorXd direc = grad.normalized();
+		// Eigen::VectorXd direc = grad.normalized();
 		Eigen::VectorXd x2 = x + direc * finite_diff_eps;
 		Eigen::VectorXd x1 = x - direc * finite_diff_eps;
 
@@ -284,11 +284,6 @@ namespace polysolve::nonlinear
                 break;
             }
 
-			{
-				POLYSOLVE_SCOPED_STOPWATCH("verify gradient", grad_time, m_logger);
-				verify_gradient(objFunc, x, grad);
-			}
-
 			if (outfile.is_open())
 			{
 				outfile << std::setprecision(12) << energy << ", " << grad_norm;
@@ -327,6 +322,11 @@ namespace polysolve::nonlinear
                 this->m_status = cppoptlib::Status::Continue;
                 continue;
             }
+
+			{
+				POLYSOLVE_SCOPED_STOPWATCH("verify gradient", grad_time, m_logger);
+				verify_gradient(objFunc, x, grad, delta_x);
+			}
 
             const double delta_x_norm = delta_x.norm();
             if (std::isnan(delta_x_norm))

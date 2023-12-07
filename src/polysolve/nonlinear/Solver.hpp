@@ -77,7 +77,7 @@ namespace polysolve::nonlinear
                    || this->m_status == cppoptlib::Status::GradNormTolerance;
         }
 
-		bool verify_gradient(Problem &objFunc, const TVector &x, const TVector &grad);
+		bool verify_gradient(Problem &objFunc, const TVector &x, const TVector &grad, const TVector &direc);
 
         size_t max_iterations() const { return this->m_stop.iterations; }
         size_t &max_iterations() { return this->m_stop.iterations; }

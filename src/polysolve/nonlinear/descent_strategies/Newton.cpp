@@ -152,7 +152,11 @@ namespace polysolve::nonlinear
         {
             POLYSOLVE_SCOPED_STOPWATCH("linear solve", this->inverting_time, m_logger);
             // TODO: get the correct size
-            linear_solver->analyze_pattern(hessian, hessian.rows());
+            {
+                double analyze_time;
+                POLYSOLVE_SCOPED_STOPWATCH("analyze pattern", analyze_time, m_logger);
+                linear_solver->analyze_pattern(hessian, hessian.rows());
+            }
 
             try
             {

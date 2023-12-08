@@ -43,8 +43,6 @@ namespace polysolve::nonlinear
 
         virtual bool stop(const TVector &x) { return false; }
 
-        virtual void save_to_file(const Eigen::VectorXd &x0) {}
-
         void sample_along_direction(
             const Problem::TVector &x,
             const Problem::TVector &direction,

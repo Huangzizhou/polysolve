@@ -222,12 +222,6 @@ namespace polysolve::nonlinear
         StopWatch stop_watch("non-linear solver", this->total_time, m_logger);
         stop_watch.start();
 
-		std::ofstream outfile;
-		if (export_energy_path != "")
-			outfile.open(export_energy_path);
-
-		objFunc.save_to_file(x);
-
         m_logger.debug(
             "Starting {} with {} solve f₀={:g} ‖∇f₀‖={:g} "
             "(stopping criteria: max_iters={:d} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g})",
@@ -236,8 +230,6 @@ namespace polysolve::nonlinear
             this->m_stop.fDelta, this->m_stop.gradNorm, this->m_stop.xDelta);
 
         update_solver_info(objFunc.value(x));
-		if (solver_info_log)
-			std::cout << solver_info << std::endl;
 
         int f_delta_step_cnt = 0;
         double f_delta = 0;
@@ -288,13 +280,6 @@ namespace polysolve::nonlinear
                 log_and_throw_error(m_logger, "[{}][{}] Gradient is nan; stopping", name(), m_line_search->name());
                 break;
             }
-
-			if (outfile.is_open())
-			{
-				outfile << std::setprecision(12) << energy << ", " << grad_norm;
-				outfile << "\n";
-				outfile.flush();
-			}
 
             this->m_current.gradNorm = grad_norm;
             this->m_status = checkConvergence(this->m_stop, this->m_current);
@@ -451,9 +436,6 @@ namespace polysolve::nonlinear
                 this->m_status = cppoptlib::Status::IterationLimit;
 
             update_solver_info(energy);
-			if (solver_info_log)
-				std::cout << solver_info << std::endl;
-            objFunc.save_to_file(x);
 
             // reset the tolerance, since in the first iter it might be smaller
             this->m_stop.gradNorm = g_norm_tol;

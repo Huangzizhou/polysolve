@@ -123,8 +123,6 @@ namespace polysolve::nonlinear
 
         std::string m_name;
 
-		bool solver_info_log;
-
         double use_grad_norm_tol;
         double first_grad_norm_tol;
 

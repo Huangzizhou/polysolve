@@ -21,6 +21,13 @@ namespace polysolve::nonlinear
         SUCCESS = 0,
     };
 
+    enum class FiniteDiffStrategy
+    {
+        NONE = 0,
+        DIRECTIONAL_DERIVATIVE = 1,
+        FULL_FINITE_DIFF = 2
+    };
+
     class Solver : public cppoptlib::ISolver<Problem, /*Ord=*/-1>
     {
     public:
@@ -101,6 +108,14 @@ namespace polysolve::nonlinear
 
         spdlog::logger &m_logger;
 
+        // ====================================================================
+        //                        Finite Difference Utilities
+        // ====================================================================
+
+        FiniteDiffStrategy gradient_fd_strategy = FiniteDiffStrategy::NONE;
+        double gradient_fd_eps = 1e-7;
+        virtual void verify_gradient(Problem &objFunc, const TVector &x, const TVector &grad) final;
+
     private:
         // ====================================================================
         //                        Solver parameters
@@ -149,8 +164,6 @@ namespace polysolve::nonlinear
 		std::string export_energy_path;
 
         ErrorCode m_error_code;
-
-		double finite_diff_eps;
 
         // ====================================================================
         //                                 END

@@ -292,7 +292,7 @@
     },
     {
         "pointer": "/line_search/method",
-        "default": "RobustArmijo",
+        "default": "Backtracking",
         "type": "string",
         "options": [
             "Armijo",

@@ -214,6 +214,12 @@ namespace polysolve::nonlinear
             objFunc.solution_changed(x);
         }
 
+        {
+            POLYSOLVE_SCOPED_STOPWATCH("compute gradient", grad_time, m_logger);
+            objFunc.gradient(x, grad);
+            this->m_current.gradNorm = compute_grad_norm(x, grad);
+        }
+
         const auto g_norm_tol = this->m_stop.gradNorm;
         this->m_stop.gradNorm = first_grad_norm_tol;
 
@@ -502,11 +508,12 @@ namespace polysolve::nonlinear
         solver_info["status"] = this->status();
         solver_info["error_code"] = m_error_code;
         solver_info["energy"] = energy;
+        solver_info["gradNorm"] = m_current.gradNorm;
+        
         const auto &crit = this->criteria();
         solver_info["iterations"] = crit.iterations;
         solver_info["xDelta"] = crit.xDelta;
         solver_info["fDelta"] = crit.fDelta;
-        solver_info["gradNorm"] = crit.gradNorm;
         solver_info["condition"] = crit.condition;
 
         double per_iteration = crit.iterations ? crit.iterations : 1;

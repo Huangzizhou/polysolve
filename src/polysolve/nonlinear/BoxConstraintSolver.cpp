@@ -106,13 +106,11 @@ namespace polysolve::nonlinear
         auto min = get_lower_bound(x, false);
         auto max = get_upper_bound(x, false);
 
-        return ((x - grad).cwiseMax(min).cwiseMin(max) - x).norm();
-        // Eigen::VectorXd proj_grad = grad;
-        // for (int i = 0; i < x.size(); i++)
-        // 	if (x(i) < min(i) + 1e-14 || x(i) > max(i) - 1e-14)
-        // 		proj_grad(i) = 0;
+        double a = grad.array().abs().maxCoeff();
+        double b = (max.array() - min.array()).array().maxCoeff();
+        double eps = std::max(a / b, 1.);
 
-        // return proj_grad.norm();
+        return ((x - grad / eps).cwiseMax(min).cwiseMin(max) - x).norm() * eps;
     }
 
     Eigen::VectorXd BoxConstraintSolver::get_lower_bound(const Eigen::VectorXd &x,

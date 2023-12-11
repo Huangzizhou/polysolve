@@ -388,6 +388,7 @@ namespace polysolve::nonlinear
 
             x += rate * delta_x;
             old_energy = energy;
+            energy = objFunc.value(x);
 
             // Reset this for the next iterations
             // if the strategy got changed, we start counting

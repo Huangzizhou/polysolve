@@ -214,6 +214,12 @@ namespace polysolve::nonlinear
             objFunc.solution_changed(x);
         }
 
+        double energy;
+        {
+            POLYSOLVE_SCOPED_STOPWATCH("compute objective function", obj_fun_time, m_logger);
+            energy = objFunc.value(x);
+        }
+
         {
             POLYSOLVE_SCOPED_STOPWATCH("compute gradient", grad_time, m_logger);
             objFunc.gradient(x, grad);
@@ -230,10 +236,10 @@ namespace polysolve::nonlinear
             "Starting {} with {} solve f₀={:g} ‖∇f₀‖={:g} "
             "(stopping criteria: max_iters={:d} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g})",
             name(), m_line_search->name(),
-            objFunc.value(x), this->m_current.gradNorm, this->m_stop.iterations,
+            energy, this->m_current.gradNorm, this->m_stop.iterations,
             this->m_stop.fDelta, this->m_stop.gradNorm, this->m_stop.xDelta);
 
-        update_solver_info(objFunc.value(x));
+        update_solver_info(energy);
         objFunc.post_step(PostStepData(this->m_current.iterations, solver_info, x, grad));
 
         int f_delta_step_cnt = 0;
@@ -247,13 +253,6 @@ namespace polysolve::nonlinear
             this->m_current.fDelta = NaN;
             this->m_current.gradNorm = NaN;
 
-            //////////// Energy
-            double energy;
-            {
-                POLYSOLVE_SCOPED_STOPWATCH("compute objective function", obj_fun_time, m_logger);
-                energy = objFunc.value(x);
-            }
-
             if (!std::isfinite(energy))
             {
                 this->m_status = cppoptlib::Status::UserDefined;
@@ -265,12 +264,6 @@ namespace polysolve::nonlinear
             f_delta = std::abs(old_energy - energy);
             // stop based on f_delta only if the solver has taken over f_delta_step_tol steps with small f_delta
             this->m_current.fDelta = (f_delta_step_cnt >= f_delta_step_tol) ? f_delta : NaN;
-
-            ///////////// gradient
-            {
-                POLYSOLVE_SCOPED_STOPWATCH("compute gradient", grad_time, m_logger);
-                objFunc.gradient(x, grad);
-            }
 
             {
                 POLYSOLVE_SCOPED_STOPWATCH("verify gradient", grad_time, m_logger);
@@ -388,7 +381,18 @@ namespace polysolve::nonlinear
 
             x += rate * delta_x;
             old_energy = energy;
-            energy = objFunc.value(x);
+
+            //////////// Energy
+            {
+                POLYSOLVE_SCOPED_STOPWATCH("compute objective function", obj_fun_time, m_logger);
+                energy = objFunc.value(x);
+            }
+
+            ///////////// gradient
+            {
+                POLYSOLVE_SCOPED_STOPWATCH("compute gradient", grad_time, m_logger);
+                objFunc.gradient(x, grad);
+            }
 
             // Reset this for the next iterations
             // if the strategy got changed, we start counting

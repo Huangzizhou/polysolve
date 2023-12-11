@@ -220,10 +220,11 @@ namespace polysolve::nonlinear
             energy = objFunc.value(x);
         }
 
+        double grad_norm;
         {
             POLYSOLVE_SCOPED_STOPWATCH("compute gradient", grad_time, m_logger);
             objFunc.gradient(x, grad);
-            this->m_current.gradNorm = compute_grad_norm(x, grad);
+            grad_norm = compute_grad_norm(x, grad);
         }
 
         const auto g_norm_tol = this->m_stop.gradNorm;
@@ -236,7 +237,7 @@ namespace polysolve::nonlinear
             "Starting {} with {} solve f₀={:g} ‖∇f₀‖={:g} "
             "(stopping criteria: max_iters={:d} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g})",
             name(), m_line_search->name(),
-            energy, this->m_current.gradNorm, this->m_stop.iterations,
+            energy, grad_norm, this->m_stop.iterations,
             this->m_stop.fDelta, this->m_stop.gradNorm, this->m_stop.xDelta);
 
         update_solver_info(energy);
@@ -251,7 +252,7 @@ namespace polysolve::nonlinear
 
             this->m_current.xDelta = NaN;
             this->m_current.fDelta = NaN;
-            this->m_current.gradNorm = NaN;
+            this->m_current.gradNorm = grad_norm;
 
             if (!std::isfinite(energy))
             {
@@ -270,7 +271,6 @@ namespace polysolve::nonlinear
                 this->verify_gradient(objFunc, x, grad);
             }
 
-            const double grad_norm = compute_grad_norm(x, grad);
             if (std::isnan(grad_norm))
             {
                 this->m_status = cppoptlib::Status::UserDefined;
@@ -279,7 +279,6 @@ namespace polysolve::nonlinear
                 break;
             }
 
-            this->m_current.gradNorm = grad_norm;
             this->m_status = checkConvergence(this->m_stop, this->m_current);
             if (this->m_status != cppoptlib::Status::Continue)
                 break;
@@ -291,7 +290,7 @@ namespace polysolve::nonlinear
             //
             bool ok = compute_update_direction(objFunc, x, grad, delta_x);
 
-            if (!ok || std::isnan(grad_norm) || (m_strategies[m_descent_strategy]->is_direction_descent() && grad_norm != 0 && delta_x.dot(grad) >= 0))
+            if (!ok || (m_strategies[m_descent_strategy]->is_direction_descent() && grad_norm != 0 && delta_x.dot(grad) >= 0))
             {
                 if (!m_strategies[m_descent_strategy]->handle_error())
                     ++m_descent_strategy;
@@ -300,13 +299,13 @@ namespace polysolve::nonlinear
                     this->m_status = cppoptlib::Status::UserDefined;
                     log_and_throw_error(m_logger, "[{}][{}] direction is not a descent direction on last strategy (‖Δx‖={:g}; ‖g‖={:g}; Δx⋅g={:g}≥0); stopping",
                                         name(), m_line_search->name(),
-                                        delta_x.norm(), compute_grad_norm(x, grad), delta_x.dot(grad));
+                                        delta_x.norm(), grad_norm, delta_x.dot(grad));
                 }
 
                 m_logger.debug(
                     "[{}][{}] direction is not a descent direction (‖Δx‖={:g}; ‖g‖={:g}; Δx⋅g={:g}≥0); reverting to {}",
                     name(), m_line_search->name(),
-                    delta_x.norm(), compute_grad_norm(x, grad), delta_x.dot(grad), descent_strategy_name());
+                    delta_x.norm(), grad_norm, delta_x.dot(grad), descent_strategy_name());
                 this->m_status = cppoptlib::Status::Continue;
                 continue;
             }
@@ -392,6 +391,7 @@ namespace polysolve::nonlinear
             {
                 POLYSOLVE_SCOPED_STOPWATCH("compute gradient", grad_time, m_logger);
                 objFunc.gradient(x, grad);
+                grad_norm = compute_grad_norm(x, grad);
             }
 
             // Reset this for the next iterations

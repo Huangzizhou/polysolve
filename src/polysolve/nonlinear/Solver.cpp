@@ -470,7 +470,7 @@ namespace polysolve::nonlinear
             " (stopping criteria: max_iters={:d} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g})",
             name(), m_line_search->name(),
             this->m_status, tot_time, this->m_current.iterations,
-            old_energy, f_delta, this->m_current.gradNorm, this->m_current.xDelta,
+            energy, f_delta, this->m_current.gradNorm, this->m_current.xDelta,
             this->m_stop.iterations, this->m_stop.fDelta, this->m_stop.gradNorm, this->m_stop.xDelta);
 
         log_times();

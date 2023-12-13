@@ -154,8 +154,6 @@ namespace polysolve::nonlinear
         double constraint_set_update_time;
         double obj_fun_time;
 
-		std::string export_energy_path;
-
         ErrorCode m_error_code;
 
         // ====================================================================

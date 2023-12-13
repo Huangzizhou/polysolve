@@ -252,7 +252,6 @@ namespace polysolve::nonlinear
         solver_info["line_search"] = params["line_search"]["method"];
     }
 
-
     void Solver::minimize(Problem &objFunc, TVector &x)
     {
         constexpr double NaN = std::numeric_limits<double>::quiet_NaN();
@@ -401,27 +400,6 @@ namespace polysolve::nonlinear
             if (this->m_status != cppoptlib::Status::Continue)
                 break;
 
-
-			// ---------------
-			// Plot energy over descent direction
-			// ---------------
-
-			// if (this->m_current.iterations > 8) {
-			// 	const double value_ = objFunc.value(x);
-			// 	const double rate_ = delta_x.dot(grad);
-			// 	std::cout << "descent rate " << rate_ << "\n";
-			// 	std::cout << std::setprecision(20) << 0 << " " << value_ << " " << grad.dot(delta_x) << "\n";
-			// 	double dt_ = 1e-4;
-			// 	while (dt_ < 1e2)
-			// 	{
-			// 		objFunc.solution_changed(x + delta_x * dt_);
-			// 		Eigen::VectorXd grad_;
-			// 		objFunc.gradient(x, grad_);
-			// 		std::cout << std::setprecision(20) << dt_ << " " << objFunc.value(x + delta_x * dt_) << " " << grad.dot(delta_x) << "\n";
-			// 		dt_ *= 1.2;
-			// 	}
-			// 	exit(0);
-			// }
             // ---------------
             // Variable update
             // ---------------

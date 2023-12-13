@@ -19,8 +19,6 @@
             "StochasticADAM",
             "StochasticGradientDescent",
             "box_constraints",
-            "solver_info_log",
-            "export_energy",
             "advanced"
         ],
         "doc": "Settings for nonlinear solver. Interior-loop linear solver settings are defined in the solver/linear section."
@@ -681,18 +679,6 @@
         "default": -1,
         "type": "float",
         "doc": "Maximum change of optimization variables in one iteration, only for solvers with box constraints. Negative value to disable this constraint."
-    },
-    {
-        "pointer": "/solver_info_log",
-        "default": false,
-        "type": "bool",
-        "doc": "Print optimization nonlinear solver statistics to log in json format at every iter"
-    },
-    {
-        "pointer": "/export_energy",
-        "default": "",
-        "type": "string",
-        "doc": "Save energy and gradient in optimizations to file"
     },
     {
         "pointer": "/box_constraints/max_change",

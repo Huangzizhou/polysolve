@@ -19,6 +19,15 @@ namespace polysolve::nonlinear
             const double characteristic_length,
             spdlog::logger &logger);
 
+    protected:
+        Newton(const bool sparse,
+               const double residual_tolerance,
+               const json &solver_params,
+               const json &linear_solver_params,
+               const double characteristic_length,
+               spdlog::logger &logger);
+
+    public:
         Newton(const bool sparse,
                const json &solver_params,
                const json &linear_solver_params,
@@ -98,7 +107,7 @@ namespace polysolve::nonlinear
     public:
         using Superclass = Newton;
 
-        RegularizedNewton(const bool sparse,
+        RegularizedNewton(const bool sparse, const bool project_to_psd,
                           const json &solver_params,
                           const json &linear_solver_params,
                           const double characteristic_length,
@@ -113,14 +122,13 @@ namespace polysolve::nonlinear
         bool handle_error() override;
 
     private:
+        const bool project_to_psd;
         double reg_weight_min; // needs to be greater than zero
         double reg_weight_max;
         double reg_weight_inc;
 
         TVector x_cache;
         polysolve::StiffnessMatrix hessian_cache;
-
-        bool use_psd_projection;
 
         double reg_weight; ///< Regularization Coefficients
     protected:

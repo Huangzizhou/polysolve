@@ -24,6 +24,83 @@
 
 namespace polysolve::nonlinear
 {
+    namespace
+    {
+        std::shared_ptr<DescentStrategy> create_solver(
+            const std::string &solver_name, const json &solver_params,
+            const json &linear_solver_params,
+            const double characteristic_length,
+            spdlog::logger &logger)
+        {
+            if (solver_name == "BFGS")
+            {
+                return std::make_shared<BFGS>(
+                    solver_params, linear_solver_params,
+                    characteristic_length, logger);
+            }
+
+            else if (solver_name == "DenseNewton" || solver_name == "dense_newton")
+            {
+                return std::make_shared<Newton>(false, solver_params, linear_solver_params, characteristic_length, logger);
+            }
+            else if (solver_name == "DenseProjectedNewton")
+            {
+                return std::make_shared<ProjectedNewton>(false, solver_params, linear_solver_params, characteristic_length, logger);
+            }
+            else if (solver_name == "DenseRegularizedNewton")
+            {
+                return std::make_shared<RegularizedNewton>(false, false, solver_params, linear_solver_params, characteristic_length, logger);
+            }
+            else if (solver_name == "DenseRegularizedProjectedNewton")
+            {
+                return std::make_shared<RegularizedNewton>(false, true, solver_params, linear_solver_params, characteristic_length, logger);
+            }
+
+            else if (solver_name == "Newton" || solver_name == "SparseNewton" || solver_name == "sparse_newton")
+            {
+                return std::make_shared<Newton>(true, solver_params, linear_solver_params, characteristic_length, logger);
+            }
+            else if (solver_name == "ProjectedNewton")
+            {
+                return std::make_shared<ProjectedNewton>(true, solver_params, linear_solver_params, characteristic_length, logger);
+            }
+            else if (solver_name == "RegularizedNewton")
+            {
+                return std::make_shared<RegularizedNewton>(true, false, solver_params, linear_solver_params, characteristic_length, logger);
+            }
+            else if (solver_name == "RegularizedProjectedNewton")
+            {
+                return std::make_shared<RegularizedNewton>(true, true, solver_params, linear_solver_params, characteristic_length, logger);
+            }
+
+            else if (solver_name == "LBFGS" || solver_name == "L-BFGS")
+            {
+                return std::make_shared<LBFGS>(solver_params, characteristic_length, logger);
+            }
+
+            else if (solver_name == "StochasticGradientDescent" || solver_name == "stochastic_gradient_descent")
+            {
+                return std::make_shared<GradientDescent>(solver_params, true, characteristic_length, logger);
+            }
+            else if (solver_name == "GradientDescent" || solver_name == "gradient_descent")
+            {
+                return std::make_shared<GradientDescent>(solver_params, false, characteristic_length, logger);
+            }
+
+            else if (solver_name == "ADAM" || solver_name == "adam")
+            {
+                return std::make_shared<ADAM>(solver_params, false, characteristic_length, logger);
+            }
+            else if (solver_name == "StochasticADAM" || solver_name == "stochastic_adam")
+            {
+                return std::make_shared<ADAM>(solver_params, true, characteristic_length, logger);
+            }
+            else
+                throw std::runtime_error("Unrecognized solver type: " + solver_name);
+        }
+
+    } // namespace
+
     NLOHMANN_JSON_SERIALIZE_ENUM(
         FiniteDiffStrategy,
         {{FiniteDiffStrategy::NONE, "None"},
@@ -59,58 +136,44 @@ namespace polysolve::nonlinear
 
         solver_params = jse.inject_defaults(solver_params, rules);
 
-        const std::string solver_name = solver_params["solver"];
+        auto solver = std::make_unique<Solver>(solver_params, characteristic_length, logger);
 
-        auto solver = std::make_unique<Solver>(solver_name, solver_params, characteristic_length, logger);
-
-        if (solver_name == "BFGS")
+        if (solver_params["solver"].is_array())
         {
-            solver->add_strategy(std::make_unique<BFGS>(
-                solver_params, linear_solver_params,
-                characteristic_length, logger));
-        }
-        else if (solver_name == "DenseNewton" || solver_name == "dense_newton")
-        {
-            auto n = Newton::create_solver(false, solver_params, linear_solver_params, characteristic_length, logger);
-            for (auto &s : n)
-                solver->add_strategy(s);
-        }
-        else if (solver_name == "Newton" || solver_name == "SparseNewton" || solver_name == "sparse_newton")
-        {
-            auto n = Newton::create_solver(true, solver_params, linear_solver_params, characteristic_length, logger);
-            for (auto &s : n)
-                solver->add_strategy(s);
-        }
-        else if (solver_name == "LBFGS" || solver_name == "L-BFGS")
-        {
-            solver->add_strategy(std::make_unique<LBFGS>(
-                solver_params, characteristic_length, logger));
-        }
-        else if (solver_name == "ADAM" || solver_name == "adam")
-        {
-            solver->add_strategy(std::make_unique<ADAM>(
-                solver_params, false, characteristic_length, logger));
-        }
-        else if (solver_name == "StochasticADAM" || solver_name == "stochastic_adam")
-        {
-            solver->add_strategy(std::make_unique<ADAM>(
-                solver_params, true, characteristic_length, logger));
-        }
-
-        else if (solver_name == "StochasticGradientDescent" || solver_name == "stochastic_gradient_descent")
-        {
-            solver->add_strategy(std::make_unique<GradientDescent>(
-                solver_params, true, characteristic_length, logger));
-        }
-        else if (solver_name == "GradientDescent" || solver_name == "gradient_descent")
-        {
-            // grad descent always there
+            for (const auto &j : solver_params["solver"])
+            {
+                const std::string solver_name = j["type"];
+                solver->add_strategy(create_solver(solver_name, j, linear_solver_params, characteristic_length, logger));
+            }
         }
         else
-            throw std::runtime_error("Unrecognized solver type: " + solver_name);
+        {
+            const std::string solver_name = solver_params["solver"];
 
-        solver->add_strategy(std::make_unique<GradientDescent>(
-            solver_params, false, characteristic_length, logger));
+            if (solver_name == "DenseNewton" || solver_name == "dense_newton")
+            {
+                auto n = Newton::create_solver(false, solver_params, linear_solver_params, characteristic_length, logger);
+                for (auto &s : n)
+                    solver->add_strategy(s);
+            }
+            else if (solver_name == "Newton" || solver_name == "SparseNewton" || solver_name == "sparse_newton")
+            {
+                auto n = Newton::create_solver(true, solver_params, linear_solver_params, characteristic_length, logger);
+                for (auto &s : n)
+                    solver->add_strategy(s);
+            }
+            else
+            {
+                solver->add_strategy(create_solver(solver_name, solver_params, linear_solver_params, characteristic_length, logger));
+            }
+
+            if (solver_name != "GradientDescent" && solver_name != "gradient_descent")
+            {
+
+                solver->add_strategy(std::make_unique<GradientDescent>(
+                    solver_params, false, characteristic_length, logger));
+            }
+        }
 
         solver->set_strategies_iterations(solver_params);
         return solver;
@@ -128,11 +191,10 @@ namespace polysolve::nonlinear
                 "L-BFGS"};
     }
 
-    Solver::Solver(const std::string &name,
-                   const json &solver_params,
+    Solver::Solver(const json &solver_params,
                    const double characteristic_length,
                    spdlog::logger &logger)
-        : m_logger(logger), m_name(name), characteristic_length(characteristic_length)
+        : m_logger(logger), characteristic_length(characteristic_length)
     {
         TCriteria criteria = TCriteria::defaults();
         criteria.xDelta = solver_params["x_delta"];
@@ -237,7 +299,7 @@ namespace polysolve::nonlinear
         m_logger.debug(
             "Starting {} with {} solve f₀={:g} ‖∇f₀‖={:g} "
             "(stopping criteria: max_iters={:d} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g})",
-            name(), m_line_search->name(),
+            descent_strategy_name(), m_line_search->name(),
             energy, grad_norm, this->m_stop.iterations,
             this->m_stop.fDelta, this->m_stop.gradNorm, this->m_stop.xDelta);
 
@@ -258,7 +320,7 @@ namespace polysolve::nonlinear
             {
                 this->m_status = cppoptlib::Status::UserDefined;
                 m_error_code = ErrorCode::NAN_ENCOUNTERED;
-                log_and_throw_error(m_logger, "[{}][{}] f(x) is nan or inf; stopping", name(), m_line_search->name());
+                log_and_throw_error(m_logger, "[{}][{}] f(x) is nan or inf; stopping", descent_strategy_name(), m_line_search->name());
                 break;
             }
 
@@ -275,7 +337,7 @@ namespace polysolve::nonlinear
             {
                 this->m_status = cppoptlib::Status::UserDefined;
                 m_error_code = ErrorCode::NAN_ENCOUNTERED;
-                log_and_throw_error(m_logger, "[{}][{}] Gradient is nan; stopping", name(), m_line_search->name());
+                log_and_throw_error(m_logger, "[{}][{}] Gradient is nan; stopping", descent_strategy_name(), m_line_search->name());
                 break;
             }
 
@@ -292,19 +354,21 @@ namespace polysolve::nonlinear
 
             if (!ok || (m_strategies[m_descent_strategy]->is_direction_descent() && grad_norm != 0 && delta_x.dot(grad) >= 0))
             {
+                const auto current_name = descent_strategy_name();
+
                 if (!m_strategies[m_descent_strategy]->handle_error())
                     ++m_descent_strategy;
                 if (m_descent_strategy >= m_strategies.size())
                 {
                     this->m_status = cppoptlib::Status::UserDefined;
                     log_and_throw_error(m_logger, "[{}][{}] direction is not a descent direction on last strategy (‖Δx‖={:g}; ‖g‖={:g}; Δx⋅g={:g}≥0); stopping",
-                                        name(), m_line_search->name(),
+                                        current_name, m_line_search->name(),
                                         delta_x.norm(), grad_norm, delta_x.dot(grad));
                 }
 
                 m_logger.debug(
                     "[{}][{}] direction is not a descent direction (‖Δx‖={:g}; ‖g‖={:g}; Δx⋅g={:g}≥0); reverting to {}",
-                    name(), m_line_search->name(),
+                    current_name, m_line_search->name(),
                     delta_x.norm(), grad_norm, delta_x.dot(grad), descent_strategy_name());
                 this->m_status = cppoptlib::Status::Continue;
                 continue;
@@ -314,6 +378,7 @@ namespace polysolve::nonlinear
             const double delta_x_norm = delta_x.norm();
             if (std::isnan(delta_x_norm))
             {
+                const auto current_name = descent_strategy_name();
                 if (!m_strategies[m_descent_strategy]->handle_error())
                     ++m_descent_strategy;
 
@@ -321,11 +386,11 @@ namespace polysolve::nonlinear
                 {
                     this->m_status = cppoptlib::Status::UserDefined;
                     log_and_throw_error(m_logger, "[{}][{}] Δx is nan on last strategy; stopping",
-                                        name(), m_line_search->name());
+                                        current_name, m_line_search->name());
                 }
 
                 this->m_status = cppoptlib::Status::UserDefined;
-                m_logger.debug("[{}][{}] Δx is nan; reverting to {}", name(), m_line_search->name(), descent_strategy_name());
+                m_logger.debug("[{}][{}] Δx is nan; reverting to {}", current_name, m_line_search->name(), descent_strategy_name());
                 this->m_status = cppoptlib::Status::Continue;
                 continue;
             }
@@ -365,16 +430,17 @@ namespace polysolve::nonlinear
             double rate = m_line_search->line_search(x, delta_x, objFunc);
             if (std::isnan(rate))
             {
+                const auto current_name = descent_strategy_name();
                 assert(this->m_status == cppoptlib::Status::Continue);
                 if (!m_strategies[m_descent_strategy]->handle_error())
                     ++m_descent_strategy;
                 if (m_descent_strategy >= m_strategies.size())
                 {
                     this->m_status = cppoptlib::Status::UserDefined; // Line search failed on gradient descent, so quit!
-                    log_and_throw_error(m_logger, "[{}][{}] Line search failed on last strategy; stopping", name(), m_line_search->name());
+                    log_and_throw_error(m_logger, "[{}][{}] Line search failed on last strategy; stopping", current_name, m_line_search->name());
                 }
 
-                m_logger.debug("[{}] Line search failed; reverting to {}", name(), descent_strategy_name());
+                m_logger.debug("[{}] Line search failed; reverting to {}", current_name, descent_strategy_name());
                 continue;
             }
 
@@ -402,6 +468,8 @@ namespace polysolve::nonlinear
             // if we did enough lower strategy, we revert back to normal
             if (m_descent_strategy != 0 && current_strategy_iter >= m_iter_per_strategy[m_descent_strategy])
             {
+
+                const auto current_name = descent_strategy_name();
                 const std::string prev_strategy_name = descent_strategy_name();
 
                 m_descent_strategy = 0;
@@ -410,7 +478,7 @@ namespace polysolve::nonlinear
 
                 m_logger.debug(
                     "[{}][{}] {} was successful for {} iterations; resetting to {}",
-                    name(), m_line_search->name(), prev_strategy_name, current_strategy_iter, descent_strategy_name());
+                    current_name, m_line_search->name(), prev_strategy_name, current_strategy_iter, descent_strategy_name());
             }
 
             previous_strategy = m_descent_strategy;
@@ -428,7 +496,7 @@ namespace polysolve::nonlinear
             {
                 this->m_status = cppoptlib::Status::UserDefined;
                 m_error_code = ErrorCode::SUCCESS;
-                m_logger.debug("[{}][{}] Objective decided to stop", name(), m_line_search->name());
+                m_logger.debug("[{}][{}] Objective decided to stop", descent_strategy_name(), m_line_search->name());
             }
 
             if (f_delta < this->m_stop.fDelta)
@@ -439,7 +507,7 @@ namespace polysolve::nonlinear
             m_logger.debug(
                 "[{}][{}] iter={:d} f={:g} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g} Δx⋅∇f(x)={:g} rate={:g} ‖step‖={:g}"
                 " (stopping criteria: max_iters={:d} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g})",
-                name(), m_line_search->name(),
+                descent_strategy_name(), m_line_search->name(),
                 this->m_current.iterations, energy, f_delta,
                 this->m_current.gradNorm, this->m_current.xDelta, delta_x.dot(grad), rate, step,
                 this->m_stop.iterations, this->m_stop.fDelta, this->m_stop.gradNorm, this->m_stop.xDelta);
@@ -458,9 +526,9 @@ namespace polysolve::nonlinear
         // -----------
 
         if (!allow_out_of_iterations && this->m_status == cppoptlib::Status::IterationLimit)
-            log_and_throw_error(m_logger, "[{}][{}] Reached iteration limit (limit={})", name(), m_line_search->name(), this->m_stop.iterations);
+            log_and_throw_error(m_logger, "[{}][{}] Reached iteration limit (limit={})", descent_strategy_name(), m_line_search->name(), this->m_stop.iterations);
         if (this->m_status == cppoptlib::Status::UserDefined && m_error_code != ErrorCode::SUCCESS)
-            log_and_throw_error(m_logger, "[{}][{}] Failed to find minimizer", name(), m_line_search->name());
+            log_and_throw_error(m_logger, "[{}][{}] Failed to find minimizer", descent_strategy_name(), m_line_search->name());
 
         double tot_time = stop_watch.getElapsedTimeInSec();
         const bool succeeded = this->m_status == cppoptlib::Status::GradNormTolerance;
@@ -468,7 +536,7 @@ namespace polysolve::nonlinear
             succeeded ? spdlog::level::info : spdlog::level::err,
             "[{}][{}] Finished: {} Took {:g}s (niters={:d} f={:g} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g})"
             " (stopping criteria: max_iters={:d} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g})",
-            name(), m_line_search->name(),
+            descent_strategy_name(), m_line_search->name(),
             this->m_status, tot_time, this->m_current.iterations,
             energy, f_delta, this->m_current.gradNorm, this->m_current.xDelta,
             this->m_stop.iterations, this->m_stop.fDelta, this->m_stop.gradNorm, this->m_stop.xDelta);

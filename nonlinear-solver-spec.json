@@ -137,6 +137,7 @@
             "reg_weight_max",
             "reg_weight_inc",
             "force_psd_projection",
+            "use_psd_projection",
             "use_psd_projection_in_regularized"
         ],
         "doc": "Options for Newton."
@@ -170,6 +171,12 @@
         "default": false,
         "type": "bool",
         "doc": "Force the Hessian to be PSD when using second order solvers (i.e., Newton's method)."
+    },
+    {
+        "pointer": "/Newton/use_psd_projection",
+        "default": true,
+        "type": "bool",
+        "doc": "Use PSD as fallback using second order solvers (i.e., Newton's method)."
     },
     {
         "pointer": "/Newton/use_psd_projection_in_regularized",
@@ -661,16 +668,16 @@
     },
     {
         "pointer": "/box_constraints/bounds/*",
-        "type": "float",
-        "doc": "Box constraint values on optimization variables."
-    },
-    {
-        "pointer": "/box_constraints/bounds/*",
         "type": "list",
         "doc": "Box constraint values on optimization variables."
     },
     {
         "pointer": "/box_constraints/bounds/*/*",
+        "type": "float",
+        "doc": "Box constraint values on optimization variables."
+    },
+    {
+        "pointer": "/box_constraints/bounds/*",
         "type": "float",
         "doc": "Box constraint values on optimization variables."
     },

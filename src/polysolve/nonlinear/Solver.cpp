@@ -314,6 +314,13 @@ namespace polysolve::nonlinear
 
             this->m_current.xDelta = NaN;
             this->m_current.fDelta = NaN;
+            this->m_current.gradNorm = NaN;
+
+            //////////// Energy
+            {
+                POLYSOLVE_SCOPED_STOPWATCH("compute objective function", obj_fun_time, m_logger);
+                energy = objFunc.value(x);
+            }
 
             if (!std::isfinite(energy))
             {
@@ -327,11 +334,18 @@ namespace polysolve::nonlinear
             // stop based on f_delta only if the solver has taken over f_delta_step_tol steps with small f_delta
             this->m_current.fDelta = (f_delta_step_cnt >= f_delta_step_tol) ? f_delta : NaN;
 
+            ///////////// gradient
+            {
+                POLYSOLVE_SCOPED_STOPWATCH("compute gradient", grad_time, m_logger);
+                objFunc.gradient(x, grad);
+            }
+
             {
                 POLYSOLVE_SCOPED_STOPWATCH("verify gradient", grad_time, m_logger);
                 this->verify_gradient(objFunc, x, grad);
             }
 
+            grad_norm = compute_grad_norm(x, grad);
             if (std::isnan(grad_norm))
             {
                 this->m_status = cppoptlib::Status::UserDefined;
@@ -339,7 +353,7 @@ namespace polysolve::nonlinear
                 log_and_throw_error(m_logger, "[{}][{}] Gradient is nan; stopping", descent_strategy_name(), m_line_search->name());
                 break;
             }
-
+            this->m_current.gradNorm = grad_norm;
             this->m_status = checkConvergence(this->m_stop, this->m_current);
             if (this->m_status != cppoptlib::Status::Continue)
                 break;
@@ -351,7 +365,7 @@ namespace polysolve::nonlinear
             //
             bool ok = compute_update_direction(objFunc, x, grad, delta_x);
 
-            if (!ok || (m_strategies[m_descent_strategy]->is_direction_descent() && grad_norm != 0 && delta_x.dot(grad) >= 0))
+            if (!ok || std::isnan(grad_norm) || (m_strategies[m_descent_strategy]->is_direction_descent() && grad_norm != 0 && delta_x.dot(grad) >= 0))
             {
                 const auto current_name = descent_strategy_name();
 
@@ -372,7 +386,6 @@ namespace polysolve::nonlinear
                 this->m_status = cppoptlib::Status::Continue;
                 continue;
             }
-
 
             const double delta_x_norm = delta_x.norm();
             if (std::isnan(delta_x_norm))

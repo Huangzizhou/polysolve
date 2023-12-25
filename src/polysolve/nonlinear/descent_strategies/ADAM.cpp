@@ -46,21 +46,16 @@ namespace polysolve::nonlinear
         if (is_stochastic_)
         {
             Eigen::VectorXd mask = (Eigen::VectorXd::Random(direction.size()).array() + 1.) / 2.;
-            for (int i = 0; i < direction.size(); ++i)
-                grad_modified(i) *= (mask(i) < erase_component_probability_) ? 0. : 1.;
+            grad_modified = (mask.array() < erase_component_probability_).select(Eigen::VectorXd::Zero(grad_modified.size()), grad_modified);
         }
 
-        TVector m = (beta_1_ * m_prev_) + ((1 - beta_1_) * grad_modified);
-        TVector v = beta_2_ * v_prev_;
-        for (int i = 0; i < v.size(); ++i)
-            v(i) += (1 - beta_2_) * grad_modified(i) * grad_modified(i);
+        TVector m = beta_1_ * m_prev_ + (1 - beta_1_) * grad_modified;
+        TVector v = beta_2_ * v_prev_.array() + (1 - beta_2_) * grad_modified.array().square();
 
-        m = m.array() / (1 - pow(beta_1_, t_));
-        v = v.array() / (1 - pow(beta_2_, t_));
+        m /= (1 - pow(beta_1_, t_));
+        v /= (1 - pow(beta_2_, t_));
 
-        direction = -alpha_ * m;
-        for (int i = 0; i < v.size(); ++i)
-            direction(i) /= sqrt(v(i) + epsilon_);
+        direction = -alpha_ * m.array() / (v.array() + epsilon_).sqrt();
 
         ++t_;
 

@@ -26,8 +26,7 @@ namespace polysolve::nonlinear
         if (is_stochastic_)
         {
             Eigen::VectorXd mask = (Eigen::VectorXd::Random(direction.size()).array() + 1.) / 2.;
-            for (int i = 0; i < direction.size(); ++i)
-                direction(i) *= (mask(i) < erase_component_probability_) ? 0. : 1.;
+            direction = (mask.array() < erase_component_probability_).select(Eigen::VectorXd::Zero(direction.size()), direction);
         }
 
         return true;

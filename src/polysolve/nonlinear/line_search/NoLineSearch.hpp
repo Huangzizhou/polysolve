@@ -1,9 +1,9 @@
 #pragma once
-#include "LineSearch.hpp"
+#include "Backtracking.hpp"
 
 namespace polysolve::nonlinear::line_search
 {
-    class NoLineSearch : public LineSearch
+    class NoLineSearch : public Backtracking
     {
     public:
         using Superclass = LineSearch;
@@ -15,13 +15,17 @@ namespace polysolve::nonlinear::line_search
         virtual std::string name() override { return "None"; }
 
     protected:
-        double compute_descent_step_size(
-            const TVector &x,
+        bool criteria(
             const TVector &delta_x,
             Problem &objFunc,
-            const bool,
-            const double,
-            const TVector &,
-            const double starting_step_size) override;
+            const bool use_grad_norm,
+            const double old_energy,
+            const TVector &old_grad,
+            const TVector &new_x,
+            const double new_energy,
+            const double step_size) const override;
+        
+    private:
+        double max_energy_incre;
     };
 } // namespace polysolve::nonlinear::line_search

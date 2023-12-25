@@ -3,20 +3,27 @@
 namespace polysolve::nonlinear::line_search
 {
     NoLineSearch::NoLineSearch(const json &params, spdlog::logger &logger)
-        : Superclass(params, logger)
+        : Backtracking(params, logger)
     {
+        max_energy_incre = params["line_search"]["max_energy_incre"];
     }
 
-    double NoLineSearch::compute_descent_step_size(
-        const TVector &x,
+    bool NoLineSearch::criteria(
         const TVector &delta_x,
         Problem &objFunc,
-        const bool,
-        const double,
-        const TVector &,
-        const double starting_step_size)
+        const bool use_grad_norm,
+        const double old_energy,
+        const TVector &old_grad,
+        const TVector &new_x,
+        const double new_energy,
+        const double step_size) const
     {
-        objFunc.solution_changed(x + delta_x * starting_step_size);
-        return starting_step_size;
+        // if (use_grad_norm)
+        // {
+        //     TVector new_grad;
+        //     objFunc.gradient(new_x, new_grad);
+        //     return new_grad.norm() < old_grad.norm(); // TODO: cache old_grad.norm()
+        // }
+        return max_energy_incre < 0 || (new_energy + max_energy_incre <= old_energy);
     }
 } // namespace polysolve::nonlinear::line_search

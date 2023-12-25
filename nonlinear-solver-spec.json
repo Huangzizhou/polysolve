@@ -559,7 +559,8 @@
             "default_init_step_size",
             "step_ratio",
             "Armijo",
-            "RobustArmijo"
+            "RobustArmijo",
+            "max_energy_incre"
         ],
         "doc": "Settings for line-search in the nonlinear solver"
     },
@@ -576,6 +577,12 @@
             "None"
         ],
         "doc": "Line-search type"
+    },
+    {
+        "pointer": "/line_search/max_energy_incre",
+        "default": -1,
+        "type": "float",
+        "doc": "Accept step if the energy increase is smaller than max_energy_incre, only used in NoLineSearch. -1 to disable."
     },
     {
         "pointer": "/line_search/use_grad_norm_tol",

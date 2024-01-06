@@ -582,7 +582,7 @@
         "pointer": "/line_search/max_energy_incre",
         "default": -1,
         "type": "float",
-        "doc": "Accept step if the energy increase is smaller than max_energy_incre, only used in NoLineSearch. -1 to disable."
+        "doc": "Accept step if the energy increase is smaller than max_energy_incre (in percentage), only used in NoLineSearch. -1 to disable."
     },
     {
         "pointer": "/line_search/use_grad_norm_tol",

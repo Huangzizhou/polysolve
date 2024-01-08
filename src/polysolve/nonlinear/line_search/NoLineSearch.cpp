@@ -24,6 +24,6 @@ namespace polysolve::nonlinear::line_search
         //     objFunc.gradient(new_x, new_grad);
         //     return new_grad.norm() < old_grad.norm(); // TODO: cache old_grad.norm()
         // }
-        return max_energy_incre < 0 || (new_energy <= old_energy * (1 + max_energy_incre));
+        return max_energy_incre < 0 || (new_energy <= old_energy + abs(old_energy) * max_energy_incre);
     }
 } // namespace polysolve::nonlinear::line_search

@@ -132,6 +132,8 @@ namespace polysolve::nonlinear
         // Reset the solver at the start of a minimization
         void reset(const int ndof);
 
+        std::string descent_strategy_name() const { return m_strategies[m_descent_strategy]->name(); }
+
         std::shared_ptr<line_search::LineSearch> m_line_search;
         std::vector<std::shared_ptr<DescentStrategy>> m_strategies;
 

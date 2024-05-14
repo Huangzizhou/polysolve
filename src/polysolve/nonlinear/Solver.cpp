@@ -440,8 +440,7 @@ namespace polysolve::nonlinear
             {
                 POLYSOLVE_SCOPED_STOPWATCH("compute gradient", grad_time, m_logger);
                 objFunc.gradient(x, grad);
-                grad_norm = compute_grad_norm(x, grad);
-                this->m_current.gradNorm = grad_norm;
+                m_current.gradNorm = compute_grad_norm(x, grad);
             }
 
             // Reset this for the next iterations

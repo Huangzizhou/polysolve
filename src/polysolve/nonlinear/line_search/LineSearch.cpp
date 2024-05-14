@@ -3,15 +3,13 @@
 #include "Armijo.hpp"
 #include "Backtracking.hpp"
 #include "RobustArmijo.hpp"
-#include "CppOptArmijo.hpp"
-#include "MoreThuente.hpp"
 #include "NoLineSearch.hpp"
 
 #include <polysolve/Utils.hpp>
 
 #include <polysolve/Types.hpp>
 
-#include <spdlog/spdlog.h>
+#include <spdlog/fmt/bundled/color.h>
 
 #include <cfenv>
 
@@ -22,32 +20,19 @@ namespace polysolve::nonlinear::line_search
     std::shared_ptr<LineSearch> LineSearch::create(const json &params, spdlog::logger &logger)
     {
         const std::string name = params["line_search"]["method"];
-        if (name == "armijo" || name == "Armijo")
+        if (name == "Armijo")
         {
             return std::make_shared<Armijo>(params, logger);
         }
-        else if (name == "armijo_alt" || name == "ArmijoAlt")
-        {
-            return std::make_shared<CppOptArmijo>(params, logger);
-        }
-        else if (name == "robust_armijo" || name == "RobustArmijo")
+        else if (name == "RobustArmijo")
         {
             return std::make_shared<RobustArmijo>(params, logger);
         }
-        else if (name == "bisection" || name == "Bisection")
-        {
-            logger.warn("{} linesearch was renamed to \"backtracking\"; using backtracking line-search", name);
-            return std::make_shared<Backtracking>(params, logger);
-        }
-        else if (name == "backtracking" || name == "Backtracking")
+        else if (name == "Backtracking")
         {
             return std::make_shared<Backtracking>(params, logger);
         }
-        else if (name == "more_thuente" || name == "MoreThuente")
-        {
-            return std::make_shared<MoreThuente>(params, logger);
-        }
-        else if (name == "none" || name == "None")
+        else if (name == "None")
         {
             return std::make_shared<NoLineSearch>(params, logger);
         }
@@ -60,12 +45,7 @@ namespace polysolve::nonlinear::line_search
 
     std::vector<std::string> LineSearch::available_methods()
     {
-        return {{"Armijo",
-                 "ArmijoAlt",
-                 "RobustArmijo",
-                 "Backtracking",
-                 "MoreThuente",
-                 "None"}};
+        return {{"Armijo", "RobustArmijo", "Backtracking", "None"}};
     }
 
     LineSearch::LineSearch(const json &params, spdlog::logger &logger)
@@ -96,7 +76,7 @@ namespace polysolve::nonlinear::line_search
 
             cur_iter = 0;
 
-            initial_energy = objFunc.value(x);
+            initial_energy = objFunc(x);
             if (std::isnan(initial_energy))
             {
                 m_logger.error("Original energy in line search is nan!");
@@ -137,7 +117,7 @@ namespace polysolve::nonlinear::line_search
         }
 
         {
-            POLYSOLVE_SCOPED_STOPWATCH("CCD narrow-phase", ccd_time, m_logger);
+            POLYSOLVE_SCOPED_STOPWATCH("CCD narrow-phase", narrow_phase_ccd_time, m_logger);
             m_logger.trace("Performing narrow-phase CCD");
             step_size = compute_collision_free_step_size(x, delta_x, objFunc, step_size);
             if (std::isnan(step_size))
@@ -166,7 +146,7 @@ namespace polysolve::nonlinear::line_search
             }
         }
 
-        const double cur_energy = objFunc.value(x + step_size * delta_x);
+        const double cur_energy = objFunc(x + step_size * delta_x);
 
         const double descent_step_size = step_size;
 
@@ -179,7 +159,7 @@ namespace polysolve::nonlinear::line_search
             objFunc.solution_changed(x);
 
             // tolerance for rounding error due to multithreading
-            assert(abs(initial_energy - objFunc.value(x)) < 1e-15);
+            assert(abs(initial_energy - objFunc(x)) < 1e-15);
 
             objFunc.line_search_end();
             return NaN;
@@ -211,7 +191,7 @@ namespace polysolve::nonlinear::line_search
         while (step_size > current_min_step_size() && cur_iter < current_max_step_size_iter())
         {
             // Compute the new energy value without contacts
-            const double energy = objFunc.value(new_x);
+            const double energy = objFunc(new_x);
             const bool is_step_valid = objFunc.is_step_valid(x, new_x);
 
             if (!std::isfinite(energy) || !is_step_valid)
@@ -265,5 +245,34 @@ namespace polysolve::nonlinear::line_search
         }
 
         return step_size;
+    }
+
+    void LineSearch::update_solver_info(json &solver_info, const double per_iteration)
+    {
+        solver_info["line_search_iterations"] = iterations();
+        solver_info["time_checking_for_nan_inf"] = checking_for_nan_inf_time / per_iteration;
+        solver_info["time_broad_phase_ccd"] = broad_phase_ccd_time / per_iteration;
+        solver_info["time_ccd"] = narrow_phase_ccd_time / per_iteration;
+        solver_info["time_classical_line_search"] = (classical_line_search_time - constraint_set_update_time) / per_iteration; // Remove double counting
+        solver_info["time_line_search_constraint_set_update"] = constraint_set_update_time / per_iteration;
+    }
+
+    void LineSearch::reset_times()
+    {
+        checking_for_nan_inf_time = 0;
+        broad_phase_ccd_time = 0;
+        narrow_phase_ccd_time = 0;
+        constraint_set_update_time = 0;
+        classical_line_search_time = 0;
+    }
+
+    void LineSearch::log_times() const
+    {
+        m_logger.debug(
+            "[{}][{}] constraint_set_update {:.2e}s, checking_for_nan_inf {:.2e}s, "
+            "broad_phase_ccd {:.2e}s, narrow_phase_ccd {:.2e}s, classical_line_search {:.2e}s",
+            fmt::format(fmt::fg(fmt::terminal_color::magenta), "timing"),
+            name(), constraint_set_update_time, checking_for_nan_inf_time,
+            broad_phase_ccd_time, narrow_phase_ccd_time, classical_line_search_time);
     }
 } // namespace polysolve::nonlinear::line_search

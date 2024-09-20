@@ -264,13 +264,12 @@ namespace polysolve::nonlinear
                                             polysolve::StiffnessMatrix &hessian)
 
     {
-        if (x.size() != x_cache.size() || x != x_cache)
+        objFunc.set_project_to_psd(project_to_psd);
+        objFunc.hessian(x, hessian);
+        if (reg_weight > 0)
         {
-            objFunc.set_project_to_psd(project_to_psd);
-            objFunc.hessian(x, hessian_cache);
-            x_cache = x;
+            hessian += reg_weight * sparse_identity(hessian.rows(), hessian.cols());
         }
-        hessian = hessian_cache + reg_weight * sparse_identity(hessian_cache.rows(), hessian_cache.cols());
     }
 
     void Newton::compute_hessian(Problem &objFunc,

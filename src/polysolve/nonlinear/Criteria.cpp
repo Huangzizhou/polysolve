@@ -30,8 +30,8 @@ namespace polysolve::nonlinear
     void Criteria::print(std::ostream &os) const
     {
         os << fmt::format(
-            "iters={:d} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g} Δx⋅∇f(x)={:g}",
-            iterations, fDelta, gradNorm, xDelta, xDeltaDotGrad);
+            "iters={:d} f={:g} Δf={:g} ‖∇f‖={:g} ‖Δx‖={:g} Δx⋅∇f(x)={:g}",
+            iterations, f, fDelta, gradNorm, xDelta, xDeltaDotGrad);
     }
 
     Status checkConvergence(const Criteria &stop, const Criteria &current)

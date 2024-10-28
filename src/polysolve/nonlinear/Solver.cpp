@@ -303,6 +303,7 @@ namespace polysolve::nonlinear
                 break;
             }
 
+            m_current.f = energy;
             m_current.fDelta = std::abs(old_energy - energy);
 
             // --- Gradient ----------------------------------------------------

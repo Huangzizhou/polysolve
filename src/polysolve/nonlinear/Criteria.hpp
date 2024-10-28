@@ -33,6 +33,7 @@ namespace polysolve::nonlinear
         size_t iterations;    ///< Maximum number of iterations
         double xDelta;        ///< Minimum change in parameter vector
         double fDelta;        ///< Minimum change in cost function
+        double f;
         double gradNorm;      ///< Minimum norm of gradient vector
         double firstGradNorm; ///< Initial norm of gradient vector
         double xDeltaDotGrad; ///< Dot product of parameter vector and gradient vector

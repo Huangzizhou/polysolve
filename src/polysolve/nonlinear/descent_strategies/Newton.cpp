@@ -270,11 +270,7 @@ namespace polysolve::nonlinear
             objFunc.hessian(x, hessian_cache);
             x_cache = x;
         }
-        hessian = hessian_cache;
-        if (reg_weight > 0)
-        {
-            hessian += reg_weight * sparse_identity(hessian.rows(), hessian.cols());
-        }
+        hessian = hessian_cache + reg_weight * sparse_identity(hessian_cache.rows(), hessian_cache.cols());
     }
 
     void Newton::compute_hessian(Problem &objFunc,

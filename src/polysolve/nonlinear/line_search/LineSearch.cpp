@@ -58,6 +58,7 @@ namespace polysolve::nonlinear::line_search
         max_step_size_iter_final = params["line_search"]["max_step_size_iter_final"];
 
         default_init_step_size = params["line_search"]["default_init_step_size"];
+        max_step_size_limiter = params["line_search"]["max_step_size_limiter"];
         step_ratio = params["line_search"]["step_ratio"];
     }
 
@@ -91,6 +92,8 @@ namespace polysolve::nonlinear::line_search
             }
 
             step_size = default_init_step_size;
+            if (delta_x.array().abs().maxCoeff() > max_step_size_limiter)
+                step_size *= max_step_size_limiter / delta_x.array().abs().maxCoeff();
 
             // TODO: removed feature
             // objFunc.heuristic_max_step(delta_x);

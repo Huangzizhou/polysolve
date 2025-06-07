@@ -132,5 +132,6 @@ namespace polysolve::nonlinear::line_search
         bool is_final_strategy;
 
         double default_init_step_size;
+        double max_step_size_limiter;
     };
 } // namespace polysolve::nonlinear::line_search

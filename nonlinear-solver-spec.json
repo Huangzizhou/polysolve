@@ -549,6 +549,7 @@
             "min_step_size_final",
             "max_step_size_iter_final",
             "default_init_step_size",
+            "max_step_size_limiter",
             "step_ratio",
             "Armijo",
             "RobustArmijo"
@@ -602,6 +603,12 @@
         "default": 1,
         "type": "float",
         "doc": "Initial step size"
+    },
+    {
+        "pointer": "/line_search/max_step_size_limiter",
+        "default": 1e16,
+        "type": "float",
+        "doc": "Maximum entry of the descent step"
     },
     {
         "pointer": "/line_search/step_ratio",
